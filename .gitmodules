@@ -1,0 +1,3 @@
+[submodule "third-party/python-fitparse"]
+	path = third-party/python-fitparse
+	url = https://github.com/glemaitre/python-fitparse.git
