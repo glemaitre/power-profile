@@ -11,9 +11,9 @@
 
 2. Pour tous les fichiers fit 
 
-..1 Pour toutes les durées entre 0 et 300 sec possibles 
-...1 Calculer les moyennes glissantes de la puissance
-...2 Conserver le maximum
-..2 Comparer les valeurs du tableau de la sortie avec le RPP et rempacer par les valeurs en corps ssi les valeurs sont supérieur
+..1. Pour toutes les durées entre 0 et 300 sec possibles 
+...1. Calculer les moyennes glissantes de la puissance
+...2. Conserver le maximum
+..2. Comparer les valeurs du tableau de la sortie avec le RPP et rempacer par les valeurs en corps ssi les valeurs sont supérieur
 
 
