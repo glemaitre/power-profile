@@ -1,14 +1,14 @@
 import numpy as np
 
-class Rpp:
+class Rpp(object):
+    """ Class to power profile """
 
     def __init__(self, duration):
-        """ Constructeur"""
 
         self.duration_rpp = duration
         self.res_rpp = np.zeros(60*self.duration)
 
-    def compute_rpp(self, data_ex, mode = 0, existing_rpp = []):
+    def compute_rpp(self, data_ex, mode=0, existing_rpp=[]):
         d_rpp = np.size(self.duration_rpp)
         d_ex = np.size(data_ex)
         t_crop = []
@@ -58,3 +58,43 @@ class Rpp:
 
         return self.duration_rpp
 
+    def fit(self, X):
+        """ Fit the data to the RPP
+        
+        Parameters:
+        -----------
+        X : array-like, shape (n_samples)
+
+        """
+
+        # We should check if X is proper
+        
+        # Make a partial fitting of the current data
+        return self.partial_fit(X)
+
+    def partial_fit(self, X):
+        """ Incremental fit of the RPPB
+        
+        Parameters:
+        -----------
+        X : array-like, shape (n_samples)
+
+        """
+
+        return self._partial_fit(self, X)
+
+    def _partial_fit(self, X, _refit=False):
+        """ Actual implementation of RPP calculation
+        
+        Parameters:
+        -----------
+        X : array-like, shape (n_samples)
+
+        _refit : bool
+            If True, the RPP will be overidden.
+
+        """
+
+        # We should check X
+
+        
