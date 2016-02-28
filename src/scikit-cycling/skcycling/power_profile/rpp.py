@@ -108,7 +108,7 @@ class Rpp(object):
         X = self._check_X(X)
 
         # Make a partial fitting of the current data
-        return self.partial_fit(X, in_parallel=in_parallel)
+        return self.partial_fit(X, refit=False, in_parallel=in_parallel)
 
 
     def partial_fit(self, X, refit=False, in_parallel=True):

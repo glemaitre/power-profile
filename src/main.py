@@ -1,26 +1,36 @@
-#!/usr/bin/env python
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Sample usage of python-fitparse to parse an activity and
-# print its data records.
+from skcycling.utils import load_power_from_fit
+from skcycling.power_profile import Rpp
 
+# Define two files - We need to go through a folder automatically
+ride_1 = '../data/user_1/2014/2014-05-12-09-31-05.fit'
+ride_2 = '../data/user_1/2014/2014-05-29-08-12-03.fit'
 
-from fitparse import FitFile
+# Extract the power from each file
+power_ride_1 = load_power_from_fit(ride_1)
+power_ride_2 = load_power_from_fit(ride_2)
 
-activity = FitFile("../data/user_1/2015/2015-08-09-13-14-05.fit")
-activity.parse()
+# Create the object to handle the rider power-profile
+# We will compute the rpp only on the 10 first minutes
+max_duration_rpp = 10
+rpp_rider = Rpp(max_duration_rpp=max_duration_rpp)
 
-# Records of type 'record' (I know, confusing) are the entries in an
-# activity file that represent actual data points in your workout.
-records = list(activity.get_messages(name='record'))
-current_record_number = 0
+# Fit the first ride
+rpp_rider.fit(power_ride_1)
 
-for record in records:
-    # Print record number
-    current_record_number += 1
-    print (" Record #%d " % current_record_number).center(40, '-')
+# You want to see your actual profile
+plt.plot(np.linspace(0, max_duration_rpp, max_duration_rpp * 60),
+         rpp_rider.rpp_)
 
-    for field in record:
-        # Get the data and units for the field
-        print (field.name, field.value, field.units)
+# We can update the profile either using fit or partial_fit
+# However, partial_fit allows to override the profile if wanted
+rpp_rider.fit(power_ride_2)
 
-    print
+# You want to see your actual profile
+plt.plot(np.linspace(0, max_duration_rpp, max_duration_rpp * 60),
+         rpp_rider.rpp_)
+
+# Show the plot
+plt.show()
