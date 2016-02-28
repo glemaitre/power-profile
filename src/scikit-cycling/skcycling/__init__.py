@@ -1,1 +1,1 @@
-__all__ = ['power_profile']
+__all__ = ['power_profile', 'utils']
