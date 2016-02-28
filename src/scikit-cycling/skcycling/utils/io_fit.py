@@ -32,6 +32,9 @@ def load_power_from_fit(filename):
         if p is not None:
             power_rec[idx_rec] = float(p)
         else:
-            raise ValueError('There record without power values. Check what is happening.')
+            # raise ValueError('There record without power values. Check what is happening.')
+            # We put the value to 0 since that it will not influence
+            # the computation of the RPP
+            power_rec[idx_rec] = 0.
 
     return power_rec
