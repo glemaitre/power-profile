@@ -1,5 +1,32 @@
 import numpy as np
 
+from joblib import Parallel, delayed
+import multiprocessing
+
+
+def _rpp_parallel(self, X, idx_t_rpp):
+    """ Function to compute the rpp in parallel
+
+    Return
+    ------
+    power : float
+        Returns the best power for the given duration of the rpp.
+    """
+    # Slice the data such that we can compute efficiently the mean later
+    t_crop = np.array([X[i:-idx_t_rpp + i:]
+                       for i in range(idx_t_rpp)])
+    # Check that there is some value cropped. In the case that
+    # the duration is longer than the file, the table crop is
+    # empty
+    if t_crop.size is not 0:
+        # Compute the mean for each of these samples
+        t_crop_mean = np.mean(t_crop, axis=0)
+        # Keep the best to store as rpp
+        return np.max(t_crop_mean)
+    else:
+        return 0
+
+
 class Rpp(object):
     """ Rider power-profile
 
@@ -60,12 +87,20 @@ class Rpp(object):
 
         return X
 
-    def fit(self, X):
+    def fit(self, X, in_parallel=True):
         """ Fit the data to the RPP
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         X : array-like, shape (n_samples, )
+
+        in_parallel : boolean
+            If True, the rpp will be computed on all the available cores
+
+        Return
+        ------
+        self : object
+            Returns self
 
         """
 
@@ -73,15 +108,23 @@ class Rpp(object):
         X = self._check_X(X)
 
         # Make a partial fitting of the current data
-        return self.partial_fit(X)
+        return self.partial_fit(X, in_parallel=in_parallel)
 
 
-    def partial_fit(self, X, refit=False):
+    def partial_fit(self, X, refit=False, in_parallel=True):
         """ Incremental fit of the RPPB
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         X : array-like, shape (n_samples, )
+
+        in_parallel : boolean
+            If True, the rpp will be computed on all the available cores
+
+        Return
+        ------
+        self : object
+            Returns self
 
         """
 
@@ -89,18 +132,26 @@ class Rpp(object):
         X = self._check_X(X)
 
         # Call the partial fitting
-        return self._partial_fit(X, refit=refit)
+        return self._partial_fit(X, refit=refit, in_parallel=in_parallel)
 
 
-    def _partial_fit(self, X, refit=False):
+    def _partial_fit(self, X, refit=False, in_parallel=True):
         """ Actual implementation of RPP calculation
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         X : array-like, shape (n_samples, )
 
         _refit : bool
             If True, the RPP will be overidden.
+
+        in_parallel : boolean
+            If True, the rpp will be computed on all the available cores
+
+        Return
+        ------
+        self : object
+            Returns self
 
         """
 
@@ -116,46 +167,62 @@ class Rpp(object):
         if self._check_partial_fit_first_call():
             # What to do if it was the first call
             # Compute the rider power-profile for the given X
-            self.rpp_ = self._compute_ride_rpp(X)
+            self.rpp_ = self._compute_ride_rpp(X, in_parallel)
         else:
             # What to do if it was yet another call
             # Compute the rider power-profile for the given X
-            self.rpp = self._compute_ride_rpp(X)
+            self.rpp = self._compute_ride_rpp(X, in_parallel)
             # Update the best rider power-profile
             self._update_rpp()
 
         return self
 
-
-    def _compute_ride_rpp(self, X):
+    def _compute_ride_rpp(self, X, in_parallel=True):
         """ Compute the rider power-profile
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         X : array-like, shape (n_samples, )
+
+        in_parallel : boolean
+            If True, the rpp will be computed on all the available cores
+
+        Return
+        ------
+        rpp : array-like, shape (n_samples, )
+            Array containing the rider power-profile of the current ride
         """
 
         # Check that X is proper
         X = self._check_X(X)
 
-        # Initialize the ride rpp
-        rpp = np.zeros(60 * self.max_duration_rpp_)
+        if in_parallel is not True:
+            # Initialize the ride rpp
+            rpp = np.zeros(60 * self.max_duration_rpp_)
 
-        # For each duration in the rpp
-        for idx_t_rpp in range(rpp.size):
-            # Slice the data such that we can compute efficiently the mean later
-            t_crop = np.array([X[i:-idx_t_rpp + i:]
-                                for i in range(idx_t_rpp)])
-            # Check that there is some value cropped. In the case that
-            # the duration is longer than the file, the table crop is
-            # empty
-            if t_crop.size is not 0:
-                # Compute the mean for each of these samples
-                t_crop_mean = np.mean(t_crop, axis=0)
-                # Keep the best to store as rpp
-                rpp[idx_t_rpp] = np.max(t_crop_mean)
+            # For each duration in the rpp
+            for idx_t_rpp in range(rpp.size):
+                # Slice the data such that we can compute efficiently
+                # the mean later
+                t_crop = np.array([X[i:-idx_t_rpp + i:]
+                                   for i in range(idx_t_rpp)])
+                # Check that there is some value cropped. In the case that
+                # the duration is longer than the file, the table crop is
+                # empty
+                if t_crop.size is not 0:
+                    # Compute the mean for each of these samples
+                    t_crop_mean = np.mean(t_crop, axis=0)
+                    # Keep the best to store as rpp
+                    rpp[idx_t_rpp] = np.max(t_crop_mean)
 
-        return rpp
+            return rpp
+
+        else:
+            rpp = Parallel(n_jobs=-1)(delayed(_rpp_parallel)(self, X, idx_t_rpp)
+                                      for idx_t_rpp
+                                      in range(60 * self.max_duration_rpp_))
+            # We need to make a conversion from list to numpy array
+            return np.array(rpp)
 
 
     def _update_rpp(self):
