@@ -28,5 +28,9 @@ for filename in filenames:
     # Fit the ride
     rpp_rider.fit(power_ride)
 
+# Create a directory to store the data if it is not existing
+if not os.path.exists(storage_path):
+    os.makedirs(storage_path)
+
 # Store the data somewhere
 np.save(os.path.join(storage_path, 'profile.npy'), rpp_rider.rpp_)
