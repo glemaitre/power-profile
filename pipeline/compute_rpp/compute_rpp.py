@@ -22,7 +22,8 @@ for root, dirs, files in os.walk(data_path):
 max_duration_rpp = 300
 rpp_rider = Rpp(max_duration_rpp=max_duration_rpp)
 # Open each file and fit
-for filename in filenames:
+for idx_file, filename in enumerate(filenames):
+    print 'Process file #{} over {}'.format(idx_file+1, len(filenames))
     # Open the file
     power_ride = load_power_from_fit(filename)
     # Fit the ride
