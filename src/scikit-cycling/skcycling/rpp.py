@@ -42,6 +42,22 @@ class Rpp(object):
 
             return True
 
+    def _check_X(X):
+        """ Private function helper to check if X is of proper size
+
+        Parameters
+        ----------
+        X : array-like, shape = (data, )
+        """
+
+        # Check that X is a numpy vector
+        if len(X.shape) is not 1:
+            raise ValueError('The shape of X is not consistent. It should be a 1D numpy vector.')
+        # Check that X is of type float
+        if X.dtype is not 'np.float64':
+            X = X.astype(np.float64)
+
+        return X
 
     def fit(self, X):
         """ Fit the data to the RPP
@@ -53,6 +69,7 @@ class Rpp(object):
         """
 
         # We should check if X is proper
+        X = self._check_X(X)
 
         # Make a partial fitting of the current data
         return self.partial_fit(self, X)
@@ -67,6 +84,10 @@ class Rpp(object):
 
         """
 
+        # Check that X is proper
+        X = self._check_X(X)
+
+        # Call the partial fitting
         return self._partial_fit(self, X, refit=refit)
 
 
@@ -83,6 +104,7 @@ class Rpp(object):
         """
 
         # We should check X
+        X = self._check_X(X)
 
         # If we want to recompute the rider power-profile
         if refit:
@@ -103,6 +125,7 @@ class Rpp(object):
 
         return self
 
+
     @staticmethod
     def _compute_ride_rpp(self, X):
         """ Compute the rider power-profile
@@ -112,6 +135,9 @@ class Rpp(object):
         X : array-like, shape (n_samples, )
         """
 
+        # Check that X is proper
+        X = self._check_X(X)
+
         # Initialize the ride rpp
         rpp = np.zeros(60 * self.max_duration_rpp_)
 
@@ -120,68 +146,31 @@ class Rpp(object):
             # Slice the data such that we can compute efficiently the mean later
             t_crop = np.array([X[i:-idx_t_rpp + i:]
                                 for i in range(idx_t_rpp)])
-            # Compute the mean for each of these samples
-            t_crop_mean = np.mean(t_crop, axis=0)
-            # Keep the best to store as rpp
-            t_rpp = np.max(t_crop_mean)
+            # Check that there is some value cropped. In the case that
+            # the duration is longer than the file, the table crop is
+            # empty
+            if t_crop.size is not 0:
+                # Compute the mean for each of these samples
+                t_crop_mean = np.mean(t_crop, axis=0)
+                # Keep the best to store as rpp
+                t_rpp = np.max(t_crop_mean)
 
         return rpp
+
 
     def _update_rpp(self):
         """ Update the rider power-profile
         """
+
         # We have to compare the ride rpp with the best rpp
         for t_rpp, t_best_rpp in zip(self.rpp, self.rpp_):
             # Update the best rpp in case the power is greater
             if t_rpp > t_best_rpp:
                 t_best_rpp = t_rpp
 
-    # def compute_rpp(self, data_ex, mode=0, existing_rpp=[]):
-    #     d_rpp = np.size(self.duration_rpp)
-    #     d_ex = np.size(data_ex)
-    #     t_crop = []
-    #     t_mean_slip = []
-
-    #     for i in range(d_rpp):
-    #         # pour toutes les durées
-    #         for j in range(d_ex-i):
-    #             # pour tous les élémerts du tableau
-    #             t_crop = data_ex[j:j+i]
-    #             #crop de la portion du tableau
-    #             t_mean_slip.append(np.mean(t_crop))
-    #             t_crop = []
-    #             # calculer toutes les moyennes glissantes de tailles
-    #         self.res_rpp[i] = np.max(t_mean_slip)
-    #         t_mean_slip = []
-            
-    #         if mode == 0: # si mode pas de mise à jours rpp existant
-    #             return self.res_rpp
-    #         else: # si mode mise à jours rpp existant
-    #             size_existing_rpp = np.size(existing_rpp)
-    #             if size_existing_rpp == self.duration_rpp : # taille rpp existant égale  à taille rppp calculé
-    #                 for i in range(size_existing_rpp):
-    #                     if self.res_rpp[i] > existing_rpp:
-    #                         existing_rpp[i] = self.res_rpp[i]
-
-    #             if size_existing_rpp > self.res_rpp: # si existant plus grand que le rpp calculé
-    #                 for i in range(size_existing_rpp):
-    #                     if self.res_rpp[i] > existing_rpp:
-    #                         existing_rpp[i] = self.res_rpp[i]
-
-
-    #             if size_existing_rpp < self.res_rpp: # si exsitant plus petit que le rpp calculé
-    #                 for i in range(size_existing_rpp): # partie commune
-    #                     if self.res_rpp[i] > existing_rpp:
-    #                         existing_rpp[i] = self.res_rpp[i] # partie supplémentaire
-    #                 for i in range(size_existing_rpp+1, self.duration_rpp):
-    #                     existing_rpp.append(self.res_rpp[i])
-                
-    #             return existing_rpp 
-
-    # def get_res_rpp(self):
-
-    #     return self.res_rpp
-
-    # def get_duration_rpp(self):
-
-    #     return self.duration_rpp
+        # In case that current rpp has an higher duration
+        # we can append the value
+        if len(self.rpp) > len(self.rpp_):
+            # Update the max duration of the rpp
+            self.rpp_ = np.append(self.rpp_, self.rpp[len(self.rpp_):])
+            self.max_duration_rpp_ = int(len(self.rpp_ / 60.))
