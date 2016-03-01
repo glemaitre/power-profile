@@ -1,5 +1,7 @@
 import numpy as np
 
+from scipy.interpolate import UnivariateSpline
+
 from joblib import Parallel, delayed
 import multiprocessing
 
@@ -86,6 +88,31 @@ class Rpp(object):
             X = X.astype(np.float64)
 
         return X
+
+    @classmethod
+    def load_from_npy(cls, filename):
+        """ Load the rider power-profile from an npy file
+
+        Parameters
+        ----------
+        filename : str
+            String containing the path to the NPY file containing the array
+            representing the rider power-profile
+
+        Return
+        ------
+        self : object
+            Returns self
+        """
+
+        # Load the rider power-profile
+        cls.rpp_ = np.load(filename)
+
+        # We have to infer the duration of the rpp
+        max_duration_rpp = cls.rpp_.size / 60
+        cls.max_duration_rpp_ = max_duration_rpp
+
+        return cls(max_duration_rpp)
 
     def fit(self, X, in_parallel=True):
         """ Fit the data to the RPP
@@ -247,3 +274,47 @@ class Rpp(object):
             # Update the max duration of the rpp
             self.rpp_ = np.append(self.rpp_, self.rpp[len(self.rpp_):])
             self.max_duration_rpp_ = int(len(self.rpp_ / 60.))
+
+    def denoise_rpp(self, method='b-spline'):
+        """ Denoise the rider power-profile
+
+        Parameters
+        ----------
+        method : str, default 'b-spline'
+            Method to select to denoise the rider power-profile
+
+        Return
+        ------
+        rpp : array-like, shape (n_samples, )
+            Return a denoise rider power-profile
+        """
+
+        if method == 'b-spline':
+            # Apply denoising based on b-spline
+            # Create the timeline
+            t = np.linspace(0, self.max_duration_rpp_, self.rpp_.size)
+            spl = UnivariateSpline(t, self.rpp_)
+
+            return spl(t)
+        else:
+            raise ValueError('This denoising method is not implemented.')
+
+
+    def resampling_rpp(self, ts):
+        """ Resampling the rider power-profile
+
+        Parameters
+        ----------
+        ts : array-like, shape (n_sample, )
+            An array containaining the time landmark to sample
+
+        Return
+        ------
+        rpp : array-like, shape (n_samples, )
+            Return a resampled rider power-profile
+        """
+
+        t = np.linspace(0, self.max_duration_rpp_, self.rpp_.size)
+        spl = UnivariateSpline(t, self.rpp_)
+
+        return spl(ts)
