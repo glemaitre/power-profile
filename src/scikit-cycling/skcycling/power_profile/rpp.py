@@ -41,18 +41,31 @@ class Rpp(object):
         Integer representing the maximum duration in minutes to
         build the rider power-profile model.
 
+    cyclist_weight : float, default None
+        Float in order to normalise the rider power-rider depending
+        of its weight. By default this is None in order to avoid
+        using the data from normalized rpp without this data.
+
     Attributes
     ----------
     rpp_ : array-like, shape (60 * max_duration_rpp, )
         Array in which the rider power-profile is stored.
         The units used is the second.
 
+    rpp_norm_ : array-like, shape (60 * max_duration_rpp, )
+        Array in which the weight-normalized rider power-profile
+        is stored. The units used is the seconds.
+
     max_duration_rpp_ : int
         The maximum duration of the rider power-profile.
+
+    cyclist_weight_ : float
+        Cyclist weight.
     """
 
-    def __init__(self, max_duration_rpp):
+    def __init__(self, max_duration_rpp, cyclist_weight=None):
         self.max_duration_rpp = max_duration_rpp
+        self.cyclist_weight = cyclist_weight
 
 
     def _check_partial_fit_first_call(self):
@@ -68,7 +81,14 @@ class Rpp(object):
             # First time that the fitting is called
             # Initalise the rpp_ variable
             self.max_duration_rpp_ = self.max_duration_rpp
+            self.cyclist_weight_ = self.cyclist_weight
             self.rpp_ = np.zeros(60 * self.max_duration_rpp)
+            # If the weight is not None we can also initialize the
+            # normalized rpp
+            if self.cyclist_weight_ is not None:
+                self.rpp_norm_ = self.rpp_
+            else:
+                self.rpp_norm_ = None
 
             return True
 
@@ -90,15 +110,21 @@ class Rpp(object):
 
         return X
 
+
     @classmethod
-    def load_from_npy(cls, filename):
+    def load_from_npy(cls, filename, cyclist_weight=None):
         """ Load the rider power-profile from an npy file
 
         Parameters
         ----------
         filename : str
             String containing the path to the NPY file containing the array
-            representing the rider power-profile
+            representing the rider power-profile.
+
+        cyclist_weight : float, default None
+            Float in order to normalise the rider power-rider depending
+            of its weight. By default this is None in order to avoid
+            using the data from normalized rpp without this data.
 
         Return
         ------
@@ -113,6 +139,15 @@ class Rpp(object):
         max_duration_rpp = cls.rpp_.size / 60
         cls.max_duration_rpp_ = max_duration_rpp
 
+        # Apply the cyclist weight
+        cls.cyclist_weight_ = cyclist_weight
+
+        # Compute the normalized rpp if possible
+        if cls.cyclist_weight_ is not None:
+            cls.rpp_norm_ = cls.rpp_ / cls.cyclist_weight_
+        else:
+            cls.rpp_norm_ = None
+
         return cls(max_duration_rpp)
 
     def fit(self, X, in_parallel=True):
@@ -123,12 +158,12 @@ class Rpp(object):
         X : array-like, shape (n_samples, )
 
         in_parallel : boolean
-            If True, the rpp will be computed on all the available cores
+            If True, the rpp will be computed on all the available cores.
 
         Return
         ------
         self : object
-            Returns self
+            Returns self.
 
         """
 
@@ -147,12 +182,12 @@ class Rpp(object):
         X : array-like, shape (n_samples, )
 
         in_parallel : boolean
-            If True, the rpp will be computed on all the available cores
+            If True, the rpp will be computed on all the available cores.
 
         Return
         ------
         self : object
-            Returns self
+            Returns self.
 
         """
 
@@ -174,12 +209,12 @@ class Rpp(object):
             If True, the RPP will be overidden.
 
         in_parallel : boolean
-            If True, the rpp will be computed on all the available cores
+            If True, the rpp will be computed on all the available cores.
 
         Return
         ------
         self : object
-            Returns self
+            Returns self.
 
         """
 
@@ -189,6 +224,7 @@ class Rpp(object):
         # If we want to recompute the rider power-profile
         if refit:
             self.rpp_ = None
+            self.rpp_norm_ = None
 
         # Check if this the first called or if we have to initialize
         # the rider power-profile
@@ -196,12 +232,18 @@ class Rpp(object):
             # What to do if it was the first call
             # Compute the rider power-profile for the given X
             self.rpp_ = self._compute_ride_rpp(X, in_parallel)
+            # Compute the normalized rpp if we should
+            if self.cyclist_weight_ is not None:
+                self.rpp_norm_ = self.rpp_ / self.cyclist_weight_
         else:
             # What to do if it was yet another call
             # Compute the rider power-profile for the given X
             self.rpp = self._compute_ride_rpp(X, in_parallel)
             # Update the best rider power-profile
             self._update_rpp()
+            # Compute the normalized rpp if we should
+            if self.cyclist_weight_ is not None:
+                self.rpp_norm_ = self.rpp_ / self.cyclist_weight_
 
         return self
 
@@ -213,12 +255,12 @@ class Rpp(object):
         X : array-like, shape (n_samples, )
 
         in_parallel : boolean
-            If True, the rpp will be computed on all the available cores
+            If True, the rpp will be computed on all the available cores.
 
         Return
         ------
         rpp : array-like, shape (n_samples, )
-            Array containing the rider power-profile of the current ride
+            Array containing the rider power-profile of the current ride.
         """
 
         # Check that X is proper
@@ -276,77 +318,112 @@ class Rpp(object):
             self.rpp_ = np.append(self.rpp_, self.rpp[len(self.rpp_):])
             self.max_duration_rpp_ = int(len(self.rpp_ / 60.))
 
-    def denoise_rpp(self, method='b-spline'):
+    def denoise_rpp(self, method='b-spline', normalized=False):
         """ Denoise the rider power-profile
 
         Parameters
         ----------
         method : str, default 'b-spline'
-            Method to select to denoise the rider power-profile
+            Method to select to denoise the rider power-profile.
+
+        normalized : bool, default False
+            Return a weight-normalized rpp if True.
 
         Return
         ------
         rpp : array-like, shape (n_samples, )
-            Return a denoise rider power-profile
+            Return a denoise rider power-profile.
         """
 
         if method == 'b-spline':
+            # Shall used the rpp or weight-normalized rpp
+            if normalized is True:
+                # Check that the cyclist weight was provided
+                if self.cyclist_weight_ is not None:
+                    rpp = self.rpp_norm_
+                else:
+                    raise ValueError('You cannot get a normalized rpp if the cyclist weight never has been given.')
+            else:
+                rpp = self.rpp_
+
             # Apply denoising based on b-spline
             # Create the timeline
-            t = np.linspace(0, self.max_duration_rpp_, self.rpp_.size)
-            spl = UnivariateSpline(t, self.rpp_)
+            t = np.linspace(0, self.max_duration_rpp_, rpp.size)
+            spl = UnivariateSpline(t, rpp)
 
             return spl(t)
         else:
             raise ValueError('This denoising method is not implemented.')
 
 
-    def resampling_rpp(self, ts):
+    def resampling_rpp(self, ts, normalized=False):
         """ Resampling the rider power-profile
 
         Parameters
         ----------
         ts : array-like, shape (n_sample, )
-            An array containaining the time landmark to sample
+            An array containaining the time landmark to sample.
+        
+        normalized : bool, default False
+            Return a weight-normalized rpp if True.
+
 
         Return
         ------
         rpp : array-like, shape (n_samples, )
-            Return a resampled rider power-profile
+            Return a resampled rider power-profile.
         """
 
-        t = np.linspace(0, self.max_duration_rpp_, self.rpp_.size)
-        spl = UnivariateSpline(t, self.rpp_)
+        # Shall used the rpp or weight-normalized rpp
+        if normalized is True:
+            # Check that the cyclist weight was provided
+            if self.cyclist_weight_ is not None:
+                rpp = self.rpp_norm_
+            else:
+                raise ValueError('You cannot get a normalized rpp if the cyclist weight never has been given.')
+        else:
+            rpp = self.rpp_
+
+        t = np.linspace(0, self.max_duration_rpp_, rpp.size)
+        spl = UnivariateSpline(t, rpp)
 
         return spl(ts)
 
 
-    def aerobic_meta_model(self, starting_time=4):
+    def aerobic_meta_model(self, ts=None, starting_time=4, normalized=False):
         """ Compute the aerobic metabolism model from the
             rider power-profile
 
         Parameters
         ----------
+        ts : array-like, shape (n_samples, )
+            Array containing the sample to take into account.
+            None if we want to pick up all the data.
+
         start_time : int, default 4
-            Starting time to consider when fitting the linear model
+            Starting time to consider when fitting the linear model.
+
+        normalized : bool, default False
+            Return a weight-normalized rpp if True.
+
 
         Return
         ------
         slope : float
-            slope of the regression line
+            slope of the regression line.
 
         intercept : float
-            intercept of the regression line
+            intercept of the regression line.
 
         r-value : float
-            correlation coefficient
+            correlation coefficient.
 
         p-value : float
             two-sided p-value for a hypothesis test whose null
             hypothesis is that the slope is zero.
 
         stderr : float
-            Standard error of the estimate
+            Standard error of the estimate.
 
         Notes
         -----
@@ -355,10 +432,11 @@ class Rpp(object):
 
         """
 
-        # From Pinot et al., we have to take from 4 min to end
-        # Extract the time to consider to compute the regression
-        ts = np.linspace(starting_time,
-                       self.max_duration_rpp_,
-                       (self.max_duration_rpp_ - starting_time) * 60)
+        # If ts is not provided we have to create a timeline
+        if ts is not None:
+            ts = np.linspace(starting_time,
+                             self.max_duration_rpp_,
+                             (self.max_duration_rpp_ - starting_time) * 60)
 
-        return linregress(np.log(ts), self.resampling_rpp(ts))
+        return linregress(np.log(ts),
+                          self.resampling_rpp(ts, normalized=normalized))

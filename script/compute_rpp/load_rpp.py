@@ -6,7 +6,7 @@ from skcycling.power_profile import Rpp
 
 # Load some data previously acquired
 path_to_profile = '../../data/user_1/profile/2015/profile.npy'
-rider_rpp = Rpp.load_from_npy(path_to_profile)
+rider_rpp = Rpp.load_from_npy(path_to_profile, cyclist_weight=70.)
 
 plt.figure()
 
@@ -27,7 +27,9 @@ plt.plot(ts, rider_rpp.resampling_rpp(ts))
 plt.show()
 
 # Fit the model from Pinot et al.
-fit_info = rider_rpp.aerobic_meta_model()
+ts_reg = np.array([4, 4.5, 5, 5.5,
+               6, 6.5, 7, 10, 20, 30])
+fit_info = rider_rpp.aerobic_meta_model(ts=ts_reg)
 
 # Define a lambda function to plot a line
 def line_generator(x, slope, intercept):
