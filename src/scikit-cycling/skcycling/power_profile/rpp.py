@@ -1,6 +1,7 @@
 import numpy as np
 
 from scipy.interpolate import UnivariateSpline
+from scipy.stats import linregress
 
 from joblib import Parallel, delayed
 import multiprocessing
@@ -318,3 +319,46 @@ class Rpp(object):
         spl = UnivariateSpline(t, self.rpp_)
 
         return spl(ts)
+
+
+    def aerobic_meta_model(self, starting_time=4):
+        """ Compute the aerobic metabolism model from the
+            rider power-profile
+
+        Parameters
+        ----------
+        start_time : int, default 4
+            Starting time to consider when fitting the linear model
+
+        Return
+        ------
+        slope : float
+            slope of the regression line
+
+        intercept : float
+            intercept of the regression line
+
+        r-value : float
+            correlation coefficient
+
+        p-value : float
+            two-sided p-value for a hypothesis test whose null
+            hypothesis is that the slope is zero.
+
+        stderr : float
+            Standard error of the estimate
+
+        Notes
+        -----
+        [1] Pinot et al., "Determination of Maximal Aerobic Power
+        on the Field in Cylcing" (2014)
+
+        """
+
+        # From Pinot et al., we have to take from 4 min to end
+        # Extract the time to consider to compute the regression
+        ts = np.linspace(starting_time,
+                       self.max_duration_rpp_,
+                       (self.max_duration_rpp_ - starting_time) * 60)
+
+        return linregress(np.log(ts), self.resampling_rpp(ts))
