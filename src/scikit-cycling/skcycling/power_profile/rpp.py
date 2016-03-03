@@ -2,6 +2,8 @@ import numpy as np
 
 from scipy.interpolate import UnivariateSpline
 from scipy.stats import linregress
+from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
 
 from joblib import Parallel, delayed
 import multiprocessing
@@ -356,14 +358,22 @@ class Rpp(object):
             raise ValueError('This denoising method is not implemented.')
 
 
-    def resampling_rpp(self, ts, normalized=False):
+    def resampling_rpp(self, ts, method_interp='linear', normalized=False):
         """ Resampling the rider power-profile
 
         Parameters
         ----------
         ts : array-like, shape (n_sample, )
             An array containaining the time landmark to sample.
-        
+
+        method_interp : string, default 'linear'
+            Name of the method to interpolate the data.
+            Specifies the kind of interpolation as a string ('linear',
+            'nearest', 'zero', 'slinear', 'quadratic, 'cubic'
+            where 'slinear', 'quadratic' and 'cubic' refer to a spline
+            interpolation of first, second or third order) or as an integer
+            specifying the order of the spline interpolator to use.
+
         normalized : bool, default False
             Return a weight-normalized rpp if True.
 
@@ -385,12 +395,27 @@ class Rpp(object):
             rpp = self.rpp_
 
         t = np.linspace(0, self.max_duration_rpp_, rpp.size)
-        spl = UnivariateSpline(t, rpp)
+        f = interp1d(t, rpp, kind=method_interp)
 
-        return spl(ts)
+        return f(ts)
+
+    @staticmethod
+    def _res_std_dev(model, estimate):
+        """ Private function to compute the residual standard deviation
+
+        Parameters
+        ----------
+        model : array-like, shape (n_sample, )
+             Value used to made the fitting.
+
+        estimate : array-like, shape (n_sample, )
+             Value obtained by fitting.
+        """
+        return np.sqrt(np.sum((model - estimate) ** 2) /
+                       (float(model.size) - 2.))
 
 
-    def aerobic_meta_model(self, ts=None, starting_time=4, normalized=False):
+    def aerobic_meta_model(self, ts=None, starting_time=4, normalized=False, method='lsq'):
         """ Compute the aerobic metabolism model from the
             rider power-profile
 
@@ -406,6 +431,8 @@ class Rpp(object):
         normalized : bool, default False
             Return a weight-normalized rpp if True.
 
+        method : string, default 'lsq'
+            Which type of tehcnic to use to make the fitting ('lsq', 'lm').
 
         Return
         ------
@@ -414,13 +441,6 @@ class Rpp(object):
 
         intercept : float
             intercept of the regression line.
-
-        r-value : float
-            correlation coefficient.
-
-        p-value : float
-            two-sided p-value for a hypothesis test whose null
-            hypothesis is that the slope is zero.
 
         stderr : float
             Standard error of the estimate.
@@ -432,11 +452,36 @@ class Rpp(object):
 
         """
 
+        # Define the function to fit
+        def linear_model(x, a, b):
+            return a * x + b
+
         # If ts is not provided we have to create a timeline
         if ts is not None:
             ts = np.linspace(starting_time,
                              self.max_duration_rpp_,
                              (self.max_duration_rpp_ - starting_time) * 60)
 
-        return linregress(np.log(ts),
-                          self.resampling_rpp(ts, normalized=normalized))
+
+        if method == 'lsq':
+            # Perform the fitting using least-square
+            slope, intercept, _, _, _ = linregress(np.log(ts),
+                                                         self.resampling_rpp(ts, normalized=normalized))
+            std_err = self._res_std_dev(self.resampling_rpp(ts,
+                                                            normalized=normalized),
+                                        linear_model(np.log(ts),
+                                                     slope, intercept))
+        elif method == 'lm':
+            # Perform the fitting using non-linear least-square
+            # Levenberg-Marquardt
+            popt, pcov = curve_fit(linear_model, np.log(ts),
+                                   self.resampling_rpp(ts,
+                                                       normalized=normalized))
+            slope = popt[0]
+            intercept = popt[1]
+            std_err = self._res_std_dev(self.resampling_rpp(ts,
+                                                            normalized=normalized),
+                                        linear_model(np.log(ts),
+                                                     slope, intercept))
+
+        return slope, intercept, std_err
