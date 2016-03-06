@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 from skcycling.utils import load_power_from_fit
+from skcycling.restoration import denoise
 from skcycling.power_profile import Rpp
 
 # The first input argument corresponding to the data path
@@ -26,6 +27,8 @@ for idx_file, filename in enumerate(filenames):
     print 'Process file #{} over {}'.format(idx_file+1, len(filenames))
     # Open the file
     power_ride = load_power_from_fit(filename)
+    # Reject the outliers using thresholding method
+    power_ride = denoise.outliers_rejection(power_ride)
     # Fit the ride
     rpp_rider.fit(power_ride)
 
