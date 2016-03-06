@@ -65,6 +65,7 @@ class Rpp(object):
         Cyclist weight.
     """
 
+
     def __init__(self, max_duration_rpp, cyclist_weight=None):
         self.max_duration_rpp = max_duration_rpp
         self.cyclist_weight = cyclist_weight
@@ -93,6 +94,7 @@ class Rpp(object):
                 self.rpp_norm_ = None
 
             return True
+
 
     @classmethod
     def _check_X(cls, X):
@@ -151,6 +153,7 @@ class Rpp(object):
             cls.rpp_norm_ = None
 
         return cls(max_duration_rpp)
+
 
     def fit(self, X, in_parallel=True):
         """ Fit the data to the RPP
@@ -233,14 +236,18 @@ class Rpp(object):
         if self._check_partial_fit_first_call():
             # What to do if it was the first call
             # Compute the rider power-profile for the given X
-            self.rpp_ = self._compute_ride_rpp(X, in_parallel)
+            self.rpp_ = self._compute_ride_rpp(X,
+                                               self.max_duration_rpp_,
+                                               in_parallel)
             # Compute the normalized rpp if we should
             if self.cyclist_weight_ is not None:
                 self.rpp_norm_ = self.rpp_ / self.cyclist_weight_
         else:
             # What to do if it was yet another call
             # Compute the rider power-profile for the given X
-            self.rpp = self._compute_ride_rpp(X, in_parallel)
+            self.rpp = self._compute_ride_rpp(X,
+                                              self.max_duration_rpp_,
+                                              in_parallel)
             # Update the best rider power-profile
             self._update_rpp()
             # Compute the normalized rpp if we should
@@ -249,7 +256,9 @@ class Rpp(object):
 
         return self
 
-    def _compute_ride_rpp(self, X, in_parallel=True):
+
+    @classmethod
+    def _compute_ride_rpp(cls, X, max_duration_rpp, in_parallel=True):
         """ Compute the rider power-profile
 
         Parameters
@@ -266,11 +275,11 @@ class Rpp(object):
         """
 
         # Check that X is proper
-        X = self._check_X(X)
+        X = cls._check_X(X)
 
         if in_parallel is not True:
             # Initialize the ride rpp
-            rpp = np.zeros(60 * self.max_duration_rpp_)
+            rpp = np.zeros(60 * max_duration_rpp)
 
             # For each duration in the rpp
             for idx_t_rpp in range(rpp.size):
@@ -290,9 +299,9 @@ class Rpp(object):
             return rpp
 
         else:
-            rpp = Parallel(n_jobs=-1)(delayed(_rpp_parallel)(self, X, idx_t_rpp)
+            rpp = Parallel(n_jobs=-1)(delayed(_rpp_parallel)(cls, X, idx_t_rpp)
                                       for idx_t_rpp
-                                      in range(60 * self.max_duration_rpp_))
+                                      in range(60 * max_duration_rpp))
             # We need to make a conversion from list to numpy array
             return np.array(rpp)
 
@@ -319,6 +328,7 @@ class Rpp(object):
             # Update the max duration of the rpp
             self.rpp_ = np.append(self.rpp_, self.rpp[len(self.rpp_):])
             self.max_duration_rpp_ = int(len(self.rpp_ / 60.))
+
 
     def denoise_rpp(self, method='b-spline', normalized=False):
         """ Denoise the rider power-profile
@@ -398,6 +408,7 @@ class Rpp(object):
         f = interp1d(t, rpp, kind=method_interp)
 
         return f(ts)
+
 
     @staticmethod
     def _res_std_dev(model, estimate):
