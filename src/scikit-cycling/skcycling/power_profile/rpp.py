@@ -9,6 +9,9 @@ from joblib import Parallel, delayed
 import multiprocessing
 
 
+from ..utils.checker import _check_X
+
+
 def _rpp_parallel(self, X, idx_t_rpp):
     """ Function to compute the rpp in parallel
 
@@ -97,25 +100,6 @@ class Rpp(object):
 
 
     @classmethod
-    def _check_X(cls, X):
-        """ Private function helper to check if X is of proper size
-
-        Parameters
-        ----------
-        X : array-like, shape = (data, )
-        """
-
-        # Check that X is a numpy vector
-        if len(X.shape) is not 1:
-            raise ValueError('The shape of X is not consistent. It should be a 1D numpy vector.')
-        # Check that X is of type float
-        if X.dtype is not 'np.float64':
-            X = X.astype(np.float64)
-
-        return X
-
-
-    @classmethod
     def load_from_npy(cls, filename, cyclist_weight=None):
         """ Load the rider power-profile from an npy file
 
@@ -173,7 +157,7 @@ class Rpp(object):
         """
 
         # We should check if X is proper
-        X = self._check_X(X)
+        X = _check_X(X)
 
         # Make a partial fitting of the current data
         return self.partial_fit(X, refit=False, in_parallel=in_parallel)
@@ -197,7 +181,7 @@ class Rpp(object):
         """
 
         # Check that X is proper
-        X = self._check_X(X)
+        X = _check_X(X)
 
         # Call the partial fitting
         return self._partial_fit(X, refit=refit, in_parallel=in_parallel)
@@ -224,7 +208,7 @@ class Rpp(object):
         """
 
         # We should check X
-        X = self._check_X(X)
+        X = _check_X(X)
 
         # If we want to recompute the rider power-profile
         if refit:
@@ -275,7 +259,7 @@ class Rpp(object):
         """
 
         # Check that X is proper
-        X = cls._check_X(X)
+        X = _check_X(X)
 
         if in_parallel is not True:
             # Initialize the ride rpp
