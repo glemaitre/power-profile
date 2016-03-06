@@ -44,6 +44,9 @@ plt.plot(dd_rpp_zoom)
 plt.figure(1)
 plt.plot(rpp)
 
+plt.figure(3)
+plt.plot(rpp_zoom)
+
 plt.figure(2)
 plt.plot(tab_srm)
 plt.plot(dd_tb_srm)
