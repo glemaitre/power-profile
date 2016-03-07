@@ -405,9 +405,44 @@ class Rpp(object):
 
         estimate : array-like, shape (n_sample, )
              Value obtained by fitting.
+
+        Return
+        ------
+        residual : float
+            Residual standard deviation.
         """
+
         return np.sqrt(np.sum((model - estimate) ** 2) /
                        (float(model.size) - 2.))
+
+    @staticmethod
+    def _r_squared(model, estimate):
+        """ Private function to compute the coefficient of determination
+
+        Parameters
+        ----------
+        model : array-like, shape (n_sample, )
+             Value used to made the fitting.
+
+        estimate : array-like, shape (n_sample, )
+             Value obtained by fitting.
+
+        Return
+        ------
+        coeff_det : float
+            Coefficient of determination.
+        """
+
+        # Compute of the observed data
+        model_mean = np.mean(model)
+
+        # Compute the total sum of squares
+        ss_tot = np.sum((model - model_mean) ** 2)
+
+        # Compute the sum of squares residual
+        ss_res = np.sum((model - estimate) ** 2)
+
+        return 1. - (ss_res / ss_tot)
 
 
     def aerobic_meta_model(self, ts=None, starting_time=4, normalized=False, method='lsq'):
@@ -440,6 +475,9 @@ class Rpp(object):
         stderr : float
             Standard error of the estimate.
 
+        coeff_det : float
+            Coefficient of determination.
+
         Notes
         -----
         [1] Pinot et al., "Determination of Maximal Aerobic Power
@@ -466,6 +504,10 @@ class Rpp(object):
                                                             normalized=normalized),
                                         linear_model(np.log(ts),
                                                      slope, intercept))
+            coeff_det = self._r_squared(self.resampling_rpp(ts,
+                                                            normalized=normalized),
+                                        linear_model(np.log(ts),
+                                                     slope, intercept))
         elif method == 'lm':
             # Perform the fitting using non-linear least-square
             # Levenberg-Marquardt
@@ -478,5 +520,9 @@ class Rpp(object):
                                                             normalized=normalized),
                                         linear_model(np.log(ts),
                                                      slope, intercept))
+            coeff_det = self._r_squared(self.resampling_rpp(ts,
+                                                            normalized=normalized),
+                                        linear_model(np.log(ts),
+                                                     slope, intercept))
 
-        return slope, intercept, std_err
+        return slope, intercept, std_err, coeff_det
