@@ -5,7 +5,7 @@ from scipy.stats import linregress
 from skcycling.power_profile import Rpp
 
 # Load some data previously acquired
-path_to_profile = '../../data/user_1/profile/2014/profile.npy'
+path_to_profile = '../../data/user_1/profile/2015/profile.npy'
 rider_rpp = Rpp.load_from_npy(path_to_profile, cyclist_weight=70.)
 
 # plt.figure()
@@ -27,8 +27,7 @@ ts = np.array([0.016, 0.083, 0.5, 1, 3, 3.5, 4, 4.5, 5, 5.5,
 # plt.show()
 
 # Fit the model from Pinot et al.
-ts_reg = np.array([4, 4.5, 5, 5.5,
-                   6, 6.5, 7, 10, 20, 30,
+ts_reg = np.array([10, 20, 30,
                    45, 60, 120, 180, 240])
 slope, intercept, std_err, r_squared = rider_rpp.aerobic_meta_model(ts=ts_reg,
                                                                     normalized=True,
