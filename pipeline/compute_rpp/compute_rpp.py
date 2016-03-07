@@ -20,7 +20,7 @@ for root, dirs, files in os.walk(data_path):
         if file.endswith('.fit'):
             filenames.append(os.path.join(root, file))
 
-max_duration_rpp = 30
+max_duration_rpp = 300
 rpp_rider = Rpp(max_duration_rpp=max_duration_rpp)
 # Open each file and fit
 for idx_file, filename in enumerate(filenames):
