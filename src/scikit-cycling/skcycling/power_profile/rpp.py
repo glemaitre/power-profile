@@ -490,7 +490,7 @@ class Rpp(object):
             return a * x + b
 
         # If ts is not provided we have to create a timeline
-        if ts is not None:
+        if ts is None:
             ts = np.linspace(starting_time,
                              self.max_duration_rpp_,
                              (self.max_duration_rpp_ - starting_time) * 60)
