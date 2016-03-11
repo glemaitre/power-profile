@@ -5,6 +5,7 @@ import numpy as np
 
 from ..utils.checker import _check_X
 
+
 def outliers_rejection(X, method='threshold', thres=2500.):
     """ Remove the outliers from the given ride
 

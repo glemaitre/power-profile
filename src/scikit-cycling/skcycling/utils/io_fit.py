@@ -2,6 +2,7 @@ import numpy as np
 
 from fitparse import FitFile
 
+
 def load_power_from_fit(filename):
     """ Method to open the power data from FIT file into a numpy array.
 
@@ -13,7 +14,8 @@ def load_power_from_fit(filename):
 
     # Check that the filename has the good extension
     if filename.endswith('.fit') is not True:
-        raise ValueError('The file does not have the right extension. Expected *.fit.')
+        raise ValueError('The file does not have the right extension.'
+                         ' Expected *.fit.')
 
     # Create an object to open the activity
     activity = FitFile(filename)
@@ -32,7 +34,8 @@ def load_power_from_fit(filename):
         if p is not None:
             power_rec[idx_rec] = float(p)
         else:
-            # raise ValueError('There record without power values. Check what is happening.')
+            # raise ValueError('There record without power values.'
+            # ' Check what is happening.')
             # We put the value to 0 since that it will not influence
             # the computation of the RPP
             power_rec[idx_rec] = 0.

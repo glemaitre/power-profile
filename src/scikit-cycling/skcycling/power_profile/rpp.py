@@ -68,11 +68,9 @@ class Rpp(object):
         Cyclist weight.
     """
 
-
     def __init__(self, max_duration_rpp, cyclist_weight=None):
         self.max_duration_rpp = max_duration_rpp
         self.cyclist_weight = cyclist_weight
-
 
     def _check_partial_fit_first_call(self):
         """ Private function helper to know if the rider power-profile
@@ -97,7 +95,6 @@ class Rpp(object):
                 self.rpp_norm_ = None
 
             return True
-
 
     @classmethod
     def load_from_npy(cls, filename, cyclist_weight=None):
@@ -138,7 +135,6 @@ class Rpp(object):
 
         return cls(max_duration_rpp)
 
-
     def fit(self, X, in_parallel=True):
         """ Fit the data to the RPP
 
@@ -162,7 +158,6 @@ class Rpp(object):
         # Make a partial fitting of the current data
         return self.partial_fit(X, refit=False, in_parallel=in_parallel)
 
-
     def partial_fit(self, X, refit=False, in_parallel=True):
         """ Incremental fit of the RPPB
 
@@ -185,7 +180,6 @@ class Rpp(object):
 
         # Call the partial fitting
         return self._partial_fit(X, refit=refit, in_parallel=in_parallel)
-
 
     def _partial_fit(self, X, refit=False, in_parallel=True):
         """ Actual implementation of RPP calculation
@@ -240,7 +234,6 @@ class Rpp(object):
 
         return self
 
-
     @classmethod
     def _compute_ride_rpp(cls, X, max_duration_rpp, in_parallel=True):
         """ Compute the rider power-profile
@@ -289,7 +282,6 @@ class Rpp(object):
             # We need to make a conversion from list to numpy array
             return np.array(rpp)
 
-
     def _update_rpp(self):
         """ Update the rider power-profile
         """
@@ -298,7 +290,8 @@ class Rpp(object):
         b_rpp = self.rpp_.copy()
 
         # We have to compare the ride rpp with the best rpp
-        for idx_rpp, (t_rpp, t_best_rpp) in enumerate(zip(self.rpp, self.rpp_)):
+        for idx_rpp, (t_rpp, t_best_rpp) in enumerate(zip(self.rpp,
+                                                          self.rpp_)):
             # Update the best rpp in case the power is greater
             if t_rpp > t_best_rpp:
                 b_rpp[idx_rpp] = t_rpp
@@ -312,7 +305,6 @@ class Rpp(object):
             # Update the max duration of the rpp
             self.rpp_ = np.append(self.rpp_, self.rpp[len(self.rpp_):])
             self.max_duration_rpp_ = int(len(self.rpp_ / 60.))
-
 
     def denoise_rpp(self, method='b-spline', normalized=False):
         """ Denoise the rider power-profile
@@ -338,7 +330,8 @@ class Rpp(object):
                 if self.cyclist_weight_ is not None:
                     rpp = self.rpp_norm_
                 else:
-                    raise ValueError('You cannot get a normalized rpp if the cyclist weight never has been given.')
+                    raise ValueError('You cannot get a normalized rpp if the'
+                                     ' cyclist weight never has been given.')
             else:
                 rpp = self.rpp_
 
@@ -350,7 +343,6 @@ class Rpp(object):
             return spl(t)
         else:
             raise ValueError('This denoising method is not implemented.')
-
 
     def resampling_rpp(self, ts, method_interp='linear', normalized=False):
         """ Resampling the rider power-profile
@@ -384,7 +376,8 @@ class Rpp(object):
             if self.cyclist_weight_ is not None:
                 rpp = self.rpp_norm_
             else:
-                raise ValueError('You cannot get a normalized rpp if the cyclist weight never has been given.')
+                raise ValueError('You cannot get a normalized rpp if the'
+                                 ' cyclist weight never has been given.')
         else:
             rpp = self.rpp_
 
@@ -392,7 +385,6 @@ class Rpp(object):
         f = interp1d(t, rpp, kind=method_interp)
 
         return f(ts)
-
 
     @staticmethod
     def _res_std_dev(model, estimate):
@@ -444,8 +436,8 @@ class Rpp(object):
 
         return 1. - (ss_res / ss_tot)
 
-
-    def aerobic_meta_model(self, ts=None, starting_time=4, normalized=False, method='lsq'):
+    def aerobic_meta_model(self, ts=None, starting_time=4,
+                           normalized=False, method='lsq'):
         """ Compute the aerobic metabolism model from the
             rider power-profile
 
@@ -495,11 +487,11 @@ class Rpp(object):
                              self.max_duration_rpp_,
                              (self.max_duration_rpp_ - starting_time) * 60)
 
-
         if method == 'lsq':
             # Perform the fitting using least-square
             slope, intercept, _, _, _ = linregress(np.log(ts),
-                                                         self.resampling_rpp(ts, normalized=normalized))
+                                                   self.resampling_rpp(ts,
+                                                                       normalized=normalized))
             std_err = self._res_std_dev(self.resampling_rpp(ts,
                                                             normalized=normalized),
                                         linear_model(np.log(ts),

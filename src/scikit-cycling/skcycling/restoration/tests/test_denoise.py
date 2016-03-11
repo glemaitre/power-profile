@@ -10,6 +10,7 @@ from skcycling.restoration import denoise
 
 pow_ride_1 = np.linspace(-10., 3000., 20)
 
+
 def test_outliers_thres_rejection():
     """ Test the outlier rejection method based on thresholding """
     # Declare the table for later comparison

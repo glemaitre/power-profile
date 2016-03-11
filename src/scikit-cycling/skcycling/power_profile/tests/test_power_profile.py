@@ -11,6 +11,7 @@ from skcycling.power_profile import Rpp
 pow_ride_1 = np.linspace(100, 200, 4000)
 pow_ride_2 = np.linspace(50, 400, 4000)
 
+
 def test_fitting_rpp():
     """ Test the computation of the fitting """
     my_rpp = Rpp(max_duration_rpp=10)
