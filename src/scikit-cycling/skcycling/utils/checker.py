@@ -21,3 +21,19 @@ def _check_X(X):
         X = X.astype(np.float64)
 
     return X
+
+
+def _check_float(X):
+    """ Private function helper to check if the value is a float
+
+    Parameters
+    ----------
+    X :
+        Value to check and convert if not float
+    """
+
+    # Check that the value is a float
+    if type(X) is not np.float64:
+        return np.float(X)
+    else:
+        return X

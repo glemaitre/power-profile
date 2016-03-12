@@ -8,11 +8,14 @@ the lower the better
 """
 
 from ..utils.checker import _check_X
+from ..utils.checker import _check_float
+
 from ..restoration.denoise import moving_average
+
 import numpy as np
 
 
-def normalized_power_score(X):
+def normalized_power_score(X, pma):
     """ Compute the normalized power for a given ride
 
     Parameters
@@ -20,27 +23,29 @@ def normalized_power_score(X):
     X : array-like, shape (n_samples, )
         Array containing the power intensities for a ride.
 
+    pma : float
+        Maxixum Anaerobic Power.
+
     Returns
     -------
     score : float
         Return the normalized power.
     """
 
-    # Check the conformity of X
+    # Check the conformity of X and pma
     X = _check_X(X)
+    pma = _check_float(pma)
 
-    # Compute the moving average
+    # Denoise the rpp through moving average using 30 sec filter
     x_avg = moving_average(X, win=30)
 
     # Removing value < 35% PMA
     arr = np.array([[-1, 5], [1, 1], [3, 11], [-4, 20], [2, 9]])
-    x_avg[~(x_avg[:] < 0.35 * pma)]
+    x_avg = np.delete(x_avg, np.nonzero(x_avg < (0.35 * pma)))
 
     # Compute the mean of the denoised ride elevated
     # at the power of 4
-    x_avg = np.mean(x_avg ** 4)
-
-    return _iroot(x_avg, 4)
+    return np.mean(x_avg ** 4.) ** (1. / 4.)
 
 
 def intensity_factor_ftp_score(X, ftp):
@@ -60,25 +65,26 @@ def intensity_factor_ftp_score(X, ftp):
         Return the intensity factor.
     """
 
-    # Check the conformity of X
+    # Check the conformity of X and ftp
     X = _check_X(X)
+    ftp = _check_float(ftp)
 
     # Compute the normalized power
-    np_score = normalized_power_score(X)
+    np_score = normalized_power_score(X, ftp2pma(ftp))
 
     return np_score / ftp
 
 
-def intensity_factor_mpa_score(X, mpa):
-    """ Compute the intensity factor using the MPA
+def intensity_factor_pma_score(X, pma):
+    """ Compute the intensity factor using the PMAB
 
     Parameters
     ----------
     X : array-like, shape (n_samples, )
         Array containing the power intensities for a ride.
 
-    mpa : float
-        Maximum Power Anaerobic.
+    pma : float
+        Maximum Anaerobic Power.
 
     Returns
     -------
@@ -86,14 +92,12 @@ def intensity_factor_mpa_score(X, mpa):
         Return the intensity factor.
     """
 
-    # Check the conformity of X
+    # Check the conformity of X and pma
     X = _check_X(X)
-
-    # Convert MPA to FTP
-    ftp = 0.76 * mpa
+    pma = _check_float(pma)
 
     # Compute the resulting IF
-    return intensity_factor_ftp_score(X, ftp)
+    return intensity_factor_ftp_score(X, pma2ftp(pma))
 
 
 def training_stress_ftp_score(X, ftp):
@@ -114,8 +118,9 @@ def training_stress_ftp_score(X, ftp):
 
     """
 
-    # Check the conformity of X
+    # Check the conformity of X and ftp
     X = _check_X(X)
+    ftp = _check_float(ftp)
 
     # Compute the intensity factor score
     if_score = intensity_factor_ftp_score(X, ftp)
@@ -124,7 +129,7 @@ def training_stress_ftp_score(X, ftp):
     return (X.size * if_score ** 2) / 3600.
 
 
-def training_stress_mpa_score(X, mpa):
+def training_stress_pma_score(X, pma):
     """ Compute the training stress score
 
     Parameters
@@ -132,8 +137,8 @@ def training_stress_mpa_score(X, mpa):
     X : array-like, shape (n_samples, )
         Array containing the power intensities for a ride.
 
-    mpa : float
-        Maximum Power Anaerobic.
+    pma : float
+        Maximum Anaerobic Power.
 
     Returns
     -------
@@ -141,22 +146,43 @@ def training_stress_mpa_score(X, mpa):
         Return the intensity factor.
     """
 
-    # Check the conformity of X
+    # Check the conformity of X and pma
     X = _check_X(X)
-
-    # Convert the mpa to ftp
-    ftp = 0.76 * mpa
+    pma = _check_float(pma)
 
     # Compute the training stress score
-    return training_stress_ftp_score(X, ftp)
+    return training_stress_ftp_score(X, pma2ftp(pma))
 
 
-def _iroot(k, n):
-    """ Compute the root of something
+def pma2ftp(pma):
+    """ Convert the PMA to FTP
+
+    Parameter:
+    ----------
+    pma : float
+        Maximum Anaerobic Power.
+
+    Return:
+    -------
+    ftp : float
+        Functioning Threhold Power.
     """
-    u, s = n, n+1
-    while u < s:
-        s = u
-        t = (k-1) * s + n // pow(s, k-1)
-        u = t // k
-    return s
+
+    return 0.76 * pma
+
+
+def ftp2pma(ftp):
+    """ Convert the PMA to FTP
+
+    Parameter:
+    ----------
+    ftp : float
+        Functioning Threhold Power.
+
+    Return:
+    -------
+    pma : float
+        Maximum Anaerobic Power.
+    """
+
+    return ftp / 0.76
