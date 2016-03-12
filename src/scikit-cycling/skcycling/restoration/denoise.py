@@ -40,3 +40,26 @@ def outliers_rejection(X, method='threshold', thres=2500.):
         raise ValueError('The outliers detection method is unknown.')
 
     return X
+
+
+def _moving_average(X, win=30):
+    """ Apply an average filter to the data
+
+    Parameters
+    ----------
+    X : array-like, shape (n_samples, )
+        Array containing the ride or a selection of a ride.
+
+    win : interger
+        Size of the sliding window.
+
+    Returns
+    -------
+    avg : array-like (float)
+        Return the denoised data mean-filter.
+    """
+
+    ret = np.cumsum(X, dtype=np.float64)
+    ret[win:] = ret[win:] - ret[:-win]
+
+    return ret[win - 1:] / win

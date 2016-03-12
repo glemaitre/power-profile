@@ -8,7 +8,7 @@ the lower the better
 """
 
 from ..utils.checker import _check_X
-from ..utils.running_average import _moving_average
+from ..restoration.denoise import _moving_average
 import numpy as np
 
 
