@@ -14,6 +14,15 @@ from ..restoration.denoise import moving_average
 
 import numpy as np
 
+TS_SCALE_GRAPPE = dict([('I1', 2.), ('I2', 2.5), ('I3', 3.),
+                        ('I4', 3.5), ('I5', 4.5), ('I6', 7.),
+                        ('I7', 11.)])
+
+ESIE_SCALE_GRAPPE = dict([('I1', (.3, .5)), ('I2', (.5, .6)),
+                          ('I3', (.6, .75)), ('I4', (.75, .85)),
+                          ('I5', (.85, 1.)), ('I6', (1., 1.80)),
+                          ('I7', (1.8, 3.))])
+
 
 def normalized_power_score(X, pma):
     """ Compute the normalized power for a given ride
@@ -39,9 +48,10 @@ def normalized_power_score(X, pma):
     # Denoise the rpp through moving average using 30 sec filter
     x_avg = moving_average(X, win=30)
 
-    # Removing value < 35% PMA
+    # Removing value < I1-ESIE, i.e. 30 % PMA
     arr = np.array([[-1, 5], [1, 1], [3, 11], [-4, 20], [2, 9]])
-    x_avg = np.delete(x_avg, np.nonzero(x_avg < (0.35 * pma)))
+    x_avg = np.delete(x_avg, np.nonzero(x_avg <
+                                        (ESIE_SCALE_GRAPPE['I1'][0] * pma)))
 
     # Compute the mean of the denoised ride elevated
     # at the power of 4
@@ -114,7 +124,7 @@ def training_stress_ftp_score(X, ftp):
     Returns
     -------
     score: float
-        Return the intensity factor.
+        Return the training stress score.
 
     """
 
@@ -143,7 +153,7 @@ def training_stress_pma_score(X, pma):
     Returns
     -------
     score: float
-        Return the intensity factor.
+        Return the training stress score.
     """
 
     # Check the conformity of X and pma
@@ -186,3 +196,63 @@ def ftp2pma(ftp):
     """
 
     return ftp / 0.76
+
+
+def training_stress_pma_grappe_score(X, pma):
+    """ Compute the training stress score using the PMA,
+        considering Grappe et al. approach
+
+    Parameters
+    ----------
+    X : array-like, shape (n_samples, )
+        Array containing the power intensities for a ride.
+
+    pma : float
+        Maximum Anaerobic Power.
+
+    Returns
+    -------
+    tss_score: float
+        Return the training stress score.
+    """
+
+    # Check the consistency of X and pma
+    X = _check_X(X)
+    pma = _check_float(pma)
+
+    # Compute the stress for each item of the ESIE
+    tss_grappe = 0.
+    for key_sc in TS_SCALE_GRAPPE.iterkeys():
+
+        # Count the number of elements which corresponds to as sec
+        # We need to convert it to minutes
+        curr_stress = np.count_nonzero(
+            np.bitwise_and(X >= ESIE_SCALE_GRAPPE[key_sc][0] * pma,
+                           X < ESIE_SCALE_GRAPPE[key_sc][1] * pma)) / 60.
+
+        # Compute the cumulative stress
+        tss_grappe += curr_stress * TS_SCALE_GRAPPE[key_sc]
+
+    return tss_grappe
+
+
+def training_stress_ftp_grappe_score(X, ftp):
+    """ Compute the training stress score using the FTP,
+        considering Grappe et al. approach
+
+    Parameters
+    ----------
+    X : array-like, shape (n_samples, )
+        Array containing the power intensities for a ride.
+
+    ftp : float
+        Functional Threshold Power.
+
+    Returns
+    -------
+    score: float
+        Return the training stress score.
+
+    """
+
+    return training_stress_pma_grappe_score(X, ftp2pma(ftp))

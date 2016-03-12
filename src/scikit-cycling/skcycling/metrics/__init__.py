@@ -9,6 +9,8 @@ from .ride import training_stress_ftp_score
 from .ride import training_stress_pma_score
 from .ride import pma2ftp
 from .ride import ftp2pma
+from .ride import training_stress_pma_grappe_score
+from .ride import training_stress_ftp_grappe_score
 
 __all__ = [
     'normalized_power_score',
@@ -18,4 +20,6 @@ __all__ = [
     'training_stress_pma_score',
     'pma2ftp',
     'ftp2pma',
+    'training_stress_pma_grappe_score',
+    'training_stress_ftp_grappe_score',
 ]
