@@ -36,7 +36,7 @@ def _rpp_parallel(self, X, idx_t_rpp):
 
 
 class Rpp(object):
-    """ Rider power-profile
+    """ Record power-profile
 
     Can perform online updates via `partial_fit` method.
 
@@ -44,25 +44,25 @@ class Rpp(object):
     ----------
     max_duration_rpp : int
         Integer representing the maximum duration in minutes to
-        build the rider power-profile model.
+        build the record power-profile model.
 
     cyclist_weight : float, default None
-        Float in order to normalise the rider power-rider depending
+        Float in order to normalise the record power-profile depending
         of its weight. By default this is None in order to avoid
         using the data from normalized rpp without this data.
 
     Attributes
     ----------
     rpp_ : array-like, shape (60 * max_duration_rpp, )
-        Array in which the rider power-profile is stored.
+        Array in which the record power-profile is stored.
         The units used is the second.
 
     rpp_norm_ : array-like, shape (60 * max_duration_rpp, )
-        Array in which the weight-normalized rider power-profile
+        Array in which the weight-normalized record power-profile
         is stored. The units used is the seconds.
 
     max_duration_rpp_ : int
-        The maximum duration of the rider power-profile.
+        The maximum duration of the record power-profile.
 
     cyclist_weight_ : float
         Cyclist weight.
@@ -73,11 +73,11 @@ class Rpp(object):
         self.cyclist_weight = cyclist_weight
 
     def _check_partial_fit_first_call(self):
-        """ Private function helper to know if the rider power-profile
+        """ Private function helper to know if the record power-profile
             already has been computed.
         """
 
-        # Check if the rider power-profile was previously created
+        # Check if the record power-profile was previously created
         if getattr(self, 'rpp_', None) is not None:
             # Not the first time that the fitting is called
             return False
@@ -98,16 +98,16 @@ class Rpp(object):
 
     @classmethod
     def load_from_npy(cls, filename, cyclist_weight=None):
-        """ Load the rider power-profile from an npy file
+        """ Load the record power-profile from an npy file
 
         Parameters
         ----------
         filename : str
             String containing the path to the NPY file containing the array
-            representing the rider power-profile.
+            representing the record power-profile.
 
         cyclist_weight : float, default None
-            Float in order to normalise the rider power-rider depending
+            Float in order to normalise the record power-profile depending
             of its weight. By default this is None in order to avoid
             using the data from normalized rpp without this data.
 
@@ -117,7 +117,7 @@ class Rpp(object):
             Returns self
         """
 
-        # Load the rider power-profile
+        # Load the record power-profile
         cls.rpp_ = np.load(filename)
 
         # We have to infer the duration of the rpp
@@ -204,16 +204,16 @@ class Rpp(object):
         # We should check X
         X = _check_X(X)
 
-        # If we want to recompute the rider power-profile
+        # If we want to recompute the record power-profile
         if refit:
             self.rpp_ = None
             self.rpp_norm_ = None
 
         # Check if this the first called or if we have to initialize
-        # the rider power-profile
+        # the record power-profile
         if self._check_partial_fit_first_call():
             # What to do if it was the first call
-            # Compute the rider power-profile for the given X
+            # Compute the record power-profile for the given X
             self.rpp_ = self._compute_ride_rpp(X,
                                                self.max_duration_rpp_,
                                                in_parallel)
@@ -222,11 +222,11 @@ class Rpp(object):
                 self.rpp_norm_ = self.rpp_ / self.cyclist_weight_
         else:
             # What to do if it was yet another call
-            # Compute the rider power-profile for the given X
+            # Compute the record power-profile for the given X
             self.rpp = self._compute_ride_rpp(X,
                                               self.max_duration_rpp_,
                                               in_parallel)
-            # Update the best rider power-profile
+            # Update the best record power-profile
             self._update_rpp()
             # Compute the normalized rpp if we should
             if self.cyclist_weight_ is not None:
@@ -236,7 +236,7 @@ class Rpp(object):
 
     @classmethod
     def _compute_ride_rpp(cls, X, max_duration_rpp, in_parallel=True):
-        """ Compute the rider power-profile
+        """ Compute the record power-profile
 
         Parameters
         ----------
@@ -248,7 +248,7 @@ class Rpp(object):
         Return
         ------
         rpp : array-like, shape (n_samples, )
-            Array containing the rider power-profile of the current ride.
+            Array containing the record power-profile of the current ride.
         """
 
         # Check that X is proper
@@ -283,7 +283,7 @@ class Rpp(object):
             return np.array(rpp)
 
     def _update_rpp(self):
-        """ Update the rider power-profile
+        """ Update the record power-profile
         """
 
         # Create a local copy of the best rpp
@@ -307,12 +307,12 @@ class Rpp(object):
             self.max_duration_rpp_ = int(len(self.rpp_ / 60.))
 
     def denoise_rpp(self, method='b-spline', normalized=False):
-        """ Denoise the rider power-profile
+        """ Denoise the record power-profile
 
         Parameters
         ----------
         method : str, default 'b-spline'
-            Method to select to denoise the rider power-profile.
+            Method to select to denoise the record power-profile.
 
         normalized : bool, default False
             Return a weight-normalized rpp if True.
@@ -320,7 +320,7 @@ class Rpp(object):
         Return
         ------
         rpp : array-like, shape (n_samples, )
-            Return a denoise rider power-profile.
+            Return a denoise record power-profile.
         """
 
         if method == 'b-spline':
@@ -345,7 +345,7 @@ class Rpp(object):
             raise ValueError('This denoising method is not implemented.')
 
     def resampling_rpp(self, ts, method_interp='linear', normalized=False):
-        """ Resampling the rider power-profile
+        """ Resampling the record power-profile
 
         Parameters
         ----------
@@ -367,7 +367,7 @@ class Rpp(object):
         Return
         ------
         rpp : array-like, shape (n_samples, )
-            Return a resampled rider power-profile.
+            Return a resampled record power-profile.
         """
 
         # Shall used the rpp or weight-normalized rpp
@@ -439,7 +439,7 @@ class Rpp(object):
     def aerobic_meta_model(self, ts=None, starting_time=4,
                            normalized=False, method='lsq'):
         """ Compute the aerobic metabolism model from the
-            rider power-profile
+            record power-profile
 
         Parameters
         ----------
