@@ -12,16 +12,13 @@ from ..utils.running_average import _moving_average
 import numpy as np
 
 
-def normalized_power_score(X, pma):
+def normalized_power_score(X):
     """ Compute the normalized power for a given ride
 
     Parameters
     ----------
     X : array-like, shape (n_samples, )
         Array containing the power intensities for a ride.
-
-    pma : double
-        Value.
 
     Returns
     -------
@@ -31,16 +28,19 @@ def normalized_power_score(X, pma):
 
     # Check the conformity of X
     X = _check_X(X)
-    x = _moving_average(X, n=30)
+
+    # Compute the moving average
+    x_avg = _moving_average(X, n=30)
 
     # Removing value < 35% PMA
     arr = np.array([[-1, 5], [1, 1], [3, 11], [-4, 20], [2, 9]])
-    X[~(X[:] < 0.35 * pma)]
+    x_avg[~(x_avg[:] < 0.35 * pma)]
 
-    X = np.power(X, 4)
-    X_mean = np.mean(X)
+    # Compute the mean of the denoised ride elevated
+    # at the power of 4
+    x_avg = np.mean(x_avg ** 4)
 
-    return _iroot(X_mean, 4)
+    return _iroot(x_avg, 4)
 
 
 def intensity_factor_ftp_score(X, ftp):
@@ -63,12 +63,10 @@ def intensity_factor_ftp_score(X, ftp):
     # Check the conformity of X
     X = _check_X(X)
 
-    # Compute the resulting IF
-    np = normalized_power_score(X)
+    # Compute the normalized power
+    np_score = normalized_power_score(X)
 
-    if_score = np / ftp
-
-    return if_score
+    return np_score / ftp
 
 
 def intensity_factor_mpa_score(X, mpa):
@@ -94,11 +92,7 @@ def intensity_factor_mpa_score(X, mpa):
     # Convert MPA to FTP
     ftp = 0.76 * mpa
 
-    # Compute the normalized power score
-    np = normalized_power_score(X)
-
     # Compute the resulting IF
-
     return intensity_factor_ftp_score(X, ftp)
 
 
@@ -123,11 +117,11 @@ def training_stress_ftp_score(X, ftp):
     # Check the conformity of X
     X = _check_X(X)
 
-    IF_val = intensity_factor_ftp_score(X, ftp)
+    # Compute the intensity factor score
+    if_score = intensity_factor_ftp_score(X, ftp)
 
-    TSS = (np.size(X) * np.power(IF_val, 2))(3600)
-
-    return
+    # Compute the training stress score
+    return (X.size * if_score ** 2) / 3600.
 
 
 def training_stress_mpa_score(X, mpa):
@@ -150,8 +144,10 @@ def training_stress_mpa_score(X, mpa):
     # Check the conformity of X
     X = _check_X(X)
 
+    # Convert the mpa to ftp
     ftp = 0.76 * mpa
 
+    # Compute the training stress score
     return training_stress_ftp_score(X, ftp)
 
 
