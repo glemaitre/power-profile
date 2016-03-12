@@ -487,34 +487,39 @@ class Rpp(object):
                              self.max_duration_rpp_,
                              (self.max_duration_rpp_ - starting_time) * 60)
 
+        # Compute the rpp
+        rpp = self.resampling_rpp(ts, normalized=normalized)
+
+        # The zero values need to be avoided for the fitting
+        # Keep the signal which is not zero
+        ts = ts[np.nonzero(rpp)]
+        rpp = rpp[np.nonzero(rpp)]
+
         if method == 'lsq':
             # Perform the fitting using least-square
-            slope, intercept, _, _, _ = linregress(np.log(ts),
-                                                   self.resampling_rpp(ts,
-                                                                       normalized=normalized))
-            std_err = self._res_std_dev(self.resampling_rpp(ts,
-                                                            normalized=normalized),
-                                        linear_model(np.log(ts),
-                                                     slope, intercept))
-            coeff_det = self._r_squared(self.resampling_rpp(ts,
-                                                            normalized=normalized),
-                                        linear_model(np.log(ts),
-                                                     slope, intercept))
+            slope, intercept, _, _, _ = linregress(np.log(ts), rpp)
+
+            std_err = self._res_std_dev(rpp, linear_model(np.log(ts),
+                                                          slope,
+                                                          intercept))
+
+            coeff_det = self._r_squared(rpp, linear_model(np.log(ts),
+                                                          slope,
+                                                          intercept))
         elif method == 'lm':
             # Perform the fitting using non-linear least-square
             # Levenberg-Marquardt
-            popt, pcov = curve_fit(linear_model, np.log(ts),
-                                   self.resampling_rpp(ts,
-                                                       normalized=normalized))
+            popt, pcov = curve_fit(linear_model, np.log(ts), rpp)
+
             slope = popt[0]
             intercept = popt[1]
-            std_err = self._res_std_dev(self.resampling_rpp(ts,
-                                                            normalized=normalized),
-                                        linear_model(np.log(ts),
-                                                     slope, intercept))
-            coeff_det = self._r_squared(self.resampling_rpp(ts,
-                                                            normalized=normalized),
-                                        linear_model(np.log(ts),
-                                                     slope, intercept))
+
+            std_err = self._res_std_dev(rpp, linear_model(np.log(ts),
+                                                          slope,
+                                                          intercept))
+
+            coeff_det = self._r_squared(rpp, linear_model(np.log(ts),
+                                                          slope,
+                                                          intercept))
 
         return slope, intercept, std_err, coeff_det
