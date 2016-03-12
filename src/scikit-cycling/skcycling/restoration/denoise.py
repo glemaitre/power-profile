@@ -42,7 +42,7 @@ def outliers_rejection(X, method='threshold', thres=2500.):
     return X
 
 
-def _moving_average(X, win=30):
+def moving_average(X, win=30):
     """ Apply an average filter to the data
 
     Parameters

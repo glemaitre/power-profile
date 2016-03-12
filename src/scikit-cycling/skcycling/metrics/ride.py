@@ -8,7 +8,7 @@ the lower the better
 """
 
 from ..utils.checker import _check_X
-from ..restoration.denoise import _moving_average
+from ..restoration.denoise import moving_average
 import numpy as np
 
 
@@ -30,7 +30,7 @@ def normalized_power_score(X):
     X = _check_X(X)
 
     # Compute the moving average
-    x_avg = _moving_average(X, n=30)
+    x_avg = moving_average(X, win=30)
 
     # Removing value < 35% PMA
     arr = np.array([[-1, 5], [1, 1], [3, 11], [-4, 20], [2, 9]])
