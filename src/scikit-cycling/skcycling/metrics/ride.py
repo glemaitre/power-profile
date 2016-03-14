@@ -49,7 +49,6 @@ def normalized_power_score(X, pma):
     x_avg = moving_average(X, win=30)
 
     # Removing value < I1-ESIE, i.e. 30 % PMA
-    arr = np.array([[-1, 5], [1, 1], [3, 11], [-4, 20], [2, 9]])
     x_avg = np.delete(x_avg, np.nonzero(x_avg <
                                         (ESIE_SCALE_GRAPPE['I1'][0] * pma)))
 
