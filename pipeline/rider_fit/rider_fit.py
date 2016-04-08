@@ -15,11 +15,13 @@ max_duration = 300
 cyclist_weight = None
 
 # Create a rider
-rider = Rider(max_duration=max_duration, cyclist_weight=cyclist_weight)
+rider = Rider(max_duration_profile=max_duration, cyclist_weight=cyclist_weight)
 
 # Check all the sub-folder which correspond to the year
-for dirs in os.walk('.').next()[1]:
+for dirs in os.walk(path_data).next()[1]:
+    print 'Process folder: {}'.format(os.path.join(path_data, dirs))
     rider.add_rides_from_path(os.path.join(path_data, dirs))
 
 # Save the rider
+print 'Store the data: {}'.format(store_path)
 rider.save_to_pickles(store_path)
